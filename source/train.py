@@ -24,6 +24,7 @@ import util_data as util_data
 
 ciagan_exp = Experiment()
 
+
 @ciagan_exp.config
 def my_config():
     TRAIN_PARAMS = {
@@ -37,9 +38,9 @@ def my_config():
 
         'ITER_CRITIC': 5,
         'ITER_GENERATOR': 1,
-        'ITER_SIAMESE':1,
+        'ITER_SIAMESE': 1,
 
-        'GAN_TYPE':'lsgan',#wgangp
+        'GAN_TYPE': 'lsgan',  # wgangp
         'FLAG_SIAM_MASK': False,
     }
 
@@ -60,13 +61,14 @@ def my_config():
         'LOG_ITER': 50,
         'SAVE_EPOCH': 5,
         'SAVE_CHECKPOINT': 50,
-        'VIZ_PORT': 8098, 'VIZ_HOSTNAME': "http://localhost", 'VIZ_ENV_NAME':'main',
+        'VIZ_PORT': 8098, 'VIZ_HOSTNAME': "http://localhost", 'VIZ_ENV_NAME': 'main',
         'SAVE_IMAGES': True,
         'PROJECT_NAME': 'ciagan',
         'EXP_TRY': 'check',
         'COMMENT': "Default",
 
     }
+
 
 # sacred library
 load_data = ciagan_exp.capture(util_data.load_data, prefix='DATA_PARAMS')
@@ -75,8 +77,9 @@ set_comp_device = ciagan_exp.capture(util_func.set_comp_device, prefix='TRAIN_PA
 set_output_folders = ciagan_exp.capture(util_func.set_output_folders)
 set_model_name = ciagan_exp.capture(util_func.set_model_name)
 
-class Train_GAN():
-    def __init__(self, model_info, device_comp, margin_contrastive=3, num_classes = 1200, gan_type = 'lsgan'):
+
+class TrainGAN:
+    def __init__(self, model_info, device_comp, margin_contrastive=3, num_classes=1200, gan_type='lsgan'):
         self.model_info = model_info
         self.device_comp = device_comp
         self.num_classes = num_classes
@@ -85,28 +88,44 @@ class Train_GAN():
         self.criterion_gan = util_loss.GANLoss(gan_type).to(self.device_comp)
         self.criterion_siamese = util_loss.ContrastiveLoss(margin_contrastive).to(self.device_comp)
 
-
     def save_model(self, epoch_iter=0, mode_save=0):
         if mode_save == 0:
-            torch.save(self.model_info['generator'].state_dict(), self.model_info['model_dir'] + self.model_info['model_name'] + '_G.pth')
-            torch.save(self.model_info['critic'].state_dict(), self.model_info['model_dir'] + self.model_info['model_name'] + '_C.pth')
-            torch.save(self.model_info['siamese'].state_dict(), self.model_info['model_dir'] + self.model_info['model_name'] + '_S.pth')
+            torch.save(self.model_info['generator'].state_dict(),
+                       self.model_info['model_dir'] + self.model_info['model_name'] + '_G.pth')
+            torch.save(self.model_info['critic'].state_dict(),
+                       self.model_info['model_dir'] + self.model_info['model_name'] + '_C.pth')
+            torch.save(self.model_info['siamese'].state_dict(),
+                       self.model_info['model_dir'] + self.model_info['model_name'] + '_S.pth')
         elif mode_save == 1:
-            torch.save(self.model_info['generator'].state_dict(), self.model_info['model_dir'] + self.model_info['model_name'] + '_ep' + str(epoch_iter + 1).zfill(5) + 'G.pth')
-            torch.save(self.model_info['critic'].state_dict(), self.model_info['model_dir'] + self.model_info['model_name'] + '_ep' + str(epoch_iter + 1).zfill(5) + 'C.pth')
-            torch.save(self.model_info['siamese'].state_dict(), self.model_info['model_dir'] + self.model_info['model_name'] + '_ep' + str(epoch_iter + 1).zfill(5) + 'S.pth')
+            torch.save(self.model_info['generator'].state_dict(),
+                       self.model_info['model_dir'] + self.model_info['model_name'] + '_ep' + str(epoch_iter + 1).zfill(
+                           5) + 'G.pth')
+            torch.save(self.model_info['critic'].state_dict(),
+                       self.model_info['model_dir'] + self.model_info['model_name'] + '_ep' + str(epoch_iter + 1).zfill(
+                           5) + 'C.pth')
+            torch.save(self.model_info['siamese'].state_dict(),
+                       self.model_info['model_dir'] + self.model_info['model_name'] + '_ep' + str(epoch_iter + 1).zfill(
+                           5) + 'S.pth')
 
     def save_images(self, out, gt, target, inp, epoch_iter=0):
         viz_out_img = torch.clamp(out, 0., 1.)
-        utils.save_image(viz_out_img, self.model_info['res_dir'] + self.model_info['model_name'] + '_ep'+ str(epoch_iter + 1).zfill(5) + "_est.png")
-        utils.save_image(gt, self.model_info['res_dir'] + self.model_info['model_name'] + '_ep'+ str(epoch_iter + 1).zfill(5) + "_gt.png")
-        utils.save_image(target, self.model_info['res_dir'] + self.model_info['model_name'] + '_ep' + str(epoch_iter + 1).zfill(5) + "_tar.png")
-        utils.save_image(inp, self.model_info['res_dir'] + self.model_info['model_name'] + '_ep'+ str(epoch_iter + 1).zfill(5) + "_inp.png")
+        utils.save_image(viz_out_img,
+                         self.model_info['res_dir'] + self.model_info['model_name'] + '_ep' + str(epoch_iter + 1).zfill(
+                             5) + "_est.png")
+        utils.save_image(gt,
+                         self.model_info['res_dir'] + self.model_info['model_name'] + '_ep' + str(epoch_iter + 1).zfill(
+                             5) + "_gt.png")
+        utils.save_image(target,
+                         self.model_info['res_dir'] + self.model_info['model_name'] + '_ep' + str(epoch_iter + 1).zfill(
+                             5) + "_tar.png")
+        utils.save_image(inp,
+                         self.model_info['res_dir'] + self.model_info['model_name'] + '_ep' + str(epoch_iter + 1).zfill(
+                             5) + "_inp.png")
 
     def reinit_loss(self):
         return [0] * 6, 0
 
-    def process_batch_data(self, input_batch, flag_same = False):
+    def process_batch_data(self, input_batch, flag_same=False):
         im_faces, im_lndm, im_msk, im_ind = input_batch
 
         im_faces = [item.float().to(self.device_comp) for item in im_faces]
@@ -114,15 +133,15 @@ class Train_GAN():
         im_msk = [item.float().to(self.device_comp) for item in im_msk]
 
         labels_one_hot = np.zeros((int(im_faces[0].shape[0]), self.num_classes))
-        if len(im_ind)>1:
+        if len(im_ind) > 1:
             labels_one_hot[np.arange(int(im_faces[1].shape[0])), im_ind[1]] = 1
         labels_one_hot = torch.tensor(labels_one_hot).float().to(self.device_comp)
 
         if flag_same:
             if len(im_ind) > 1:
-                label_same = (im_ind[0]==im_ind[1])/1
+                label_same = (im_ind[0] == im_ind[1]) / 1
             else:
-                label_same = (im_ind[0]==im_ind[0])/1
+                label_same = (im_ind[0] == im_ind[0]) / 1
             return im_faces, im_lndm, im_msk, labels_one_hot, label_same.to(self.device_comp)
 
         return im_faces, im_lndm, im_msk, labels_one_hot
@@ -135,7 +154,7 @@ class Train_GAN():
         for j in range(num_iter_siamese):
             # get and process new batch
             sample_batch = self.data_iter.next()
-            im_faces, im_lndm, im_msk, im_onehot, label_data = self.process_batch_data(sample_batch, flag_same = True)
+            im_faces, im_lndm, im_msk, im_onehot, label_data = self.process_batch_data(sample_batch, flag_same=True)
 
             # training part with full or masked image
             self.optimizer_S.zero_grad()
@@ -155,7 +174,7 @@ class Train_GAN():
         return input_gen, input_repr, im_msk
 
     def train_critic(self, num_iter_critic=1):
-        loss_sum = [0,0]
+        loss_sum = [0, 0]
         for p in self.model_info['critic'].parameters():
             p.requires_grad = True
 
@@ -169,7 +188,7 @@ class Train_GAN():
                 im_faces, im_lndm, im_msk, im_onehot = self.process_batch_data(sample_batch)
 
                 input_gen, input_repr, im_msk = self.input_train(im_faces, im_lndm[0], im_msk)
-                im_gen = self.model_info['generator'](input_gen, onehot = im_onehot)
+                im_gen = self.model_info['generator'](input_gen, onehot=im_onehot)
 
             output_gen = im_faces[0] * (1 - im_msk[0]) + im_gen * im_msk[0]
             face_landmark_fake = torch.cat((output_gen, input_repr), 1)
@@ -188,8 +207,9 @@ class Train_GAN():
             # update
             loss_D = loss_C_fake + loss_C_real
 
-            if self.gan_type=='wgangp':
-                grad_penalty = util_loss.cal_gradient_penalty(self.model_info['critic'], face_landmark_real, face_landmark_fake.detach(), self.device_comp)
+            if self.gan_type == 'wgangp':
+                grad_penalty = util_loss.cal_gradient_penalty(self.model_info['critic'], face_landmark_real,
+                                                              face_landmark_fake.detach(), self.device_comp)
                 loss_D += grad_penalty
 
             loss_D.backward()
@@ -201,8 +221,8 @@ class Train_GAN():
 
         return loss_sum
 
-    def train_generator(self, num_iter_generator=1, flag_siamese = True):
-        loss_sum = [0,0]
+    def train_generator(self, num_iter_generator=1, flag_siamese=True):
+        loss_sum = [0, 0]
 
         # freeze the discriminator
         for p in self.model_info['critic'].parameters():
@@ -212,11 +232,11 @@ class Train_GAN():
         for p in self.model_info['generator'].parameters():
             p.requires_grad = True
 
-        im_faces, im_lndm, output_gen = [],[],[]
+        im_faces, im_lndm, output_gen = [], [], []
         for j in range(num_iter_generator):
             # get and process data
             sample_batch = self.data_iter.next()
-            im_faces, im_lndm, im_msk, im_onehot, label_same = self.process_batch_data(sample_batch, flag_same = True)
+            im_faces, im_lndm, im_msk, im_onehot, label_same = self.process_batch_data(sample_batch, flag_same=True)
 
             # start training
             self.optimizer_G.zero_grad()
@@ -244,7 +264,7 @@ class Train_GAN():
             loss_sum[0] += loss_G_gan.item()
             for l_iter in range(len(label_same)):
                 # alter colors depending on target class (red - different id, greenish - same id)
-                if label_same[l_iter]==1:
+                if label_same[l_iter] == 1:
                     im_faces[1][l_iter, 1, :, :] += 0.2
                     im_faces[1][l_iter, 2, :, :] += 0.2
                 else:
@@ -254,9 +274,12 @@ class Train_GAN():
 
     @ciagan_exp.capture
     def train_model(self, loaders, TRAIN_PARAMS, OUTPUT_PARAMS):
-        self.optimizer_G = optim.Adam(self.model_info['generator'].parameters(), lr=TRAIN_PARAMS['LEARNING_RATE'], betas=(0.5, 0.999))
-        self.optimizer_C = optim.Adam(self.model_info['critic'].parameters(), lr=TRAIN_PARAMS['LEARNING_RATE'], betas=(0.5, 0.999))
-        self.optimizer_S = optim.Adam(self.model_info['siamese'].parameters(), lr=TRAIN_PARAMS['LEARNING_RATE'], betas=(0.5, 0.999))
+        self.optimizer_G = optim.Adam(self.model_info['generator'].parameters(), lr=TRAIN_PARAMS['LEARNING_RATE'],
+                                      betas=(0.5, 0.999))
+        self.optimizer_C = optim.Adam(self.model_info['critic'].parameters(), lr=TRAIN_PARAMS['LEARNING_RATE'],
+                                      betas=(0.5, 0.999))
+        self.optimizer_S = optim.Adam(self.model_info['siamese'].parameters(), lr=TRAIN_PARAMS['LEARNING_RATE'],
+                                      betas=(0.5, 0.999))
 
         self.flag_siam_mask = TRAIN_PARAMS['FLAG_SIAM_MASK']
 
@@ -264,7 +287,8 @@ class Train_GAN():
         num_iter_siamese = TRAIN_PARAMS['ITER_SIAMESE']
         num_iter_critic = TRAIN_PARAMS['ITER_CRITIC']
         num_iter_generator = TRAIN_PARAMS['ITER_GENERATOR']
-        self.model_info['total_steps'] = int(self.model_info['total_steps']/(2*num_iter_critic+num_iter_generator+num_iter_siamese))
+        self.model_info['total_steps'] = int(
+            self.model_info['total_steps'] / (2 * num_iter_critic + num_iter_generator + num_iter_siamese))
 
         ##### Training
         print("Total number of epochs:", TRAIN_PARAMS['EPOCHS_NUM'])
@@ -277,11 +301,12 @@ class Train_GAN():
             for st_iter in range(self.model_info['total_steps']):
                 loss_sum[3] += self.train_siamese(num_iter_siamese=num_iter_siamese)
 
-                loss_values = self.train_critic(num_iter_critic = num_iter_critic)
+                loss_values = self.train_critic(num_iter_critic=num_iter_critic)
                 loss_sum[0] += loss_values[0]
                 loss_sum[4] += loss_values[1]
 
-                train_out  = self.train_generator(num_iter_generator=num_iter_generator, flag_siamese=False if num_iter_siamese is 0 else True)
+                train_out = self.train_generator(num_iter_generator=num_iter_generator,
+                                                 flag_siamese=False if num_iter_siamese is 0 else True)
                 loss_values, im_faces, im_lndm, im_gen = train_out[:4]
                 loss_sum[1] += loss_values[0]
                 loss_sum[2] += loss_values[1]
@@ -289,13 +314,16 @@ class Train_GAN():
 
                 ##### Log and visualize output
                 if (st_iter + 1) % OUTPUT_PARAMS['LOG_ITER'] == 0:
-                    print(self.model_info['model_name'], 'Epoch [{}/{}], Step [{}/{}], Loss C: {:.4f}, G: {:.4f}, S: {:.4f}'
-                          .format(epoch_iter + 1, TRAIN_PARAMS['EPOCHS_NUM'], st_iter + 1, self.model_info['total_steps'], loss_sum[0] / iter_count, loss_sum[1] / iter_count, loss_sum[3] / iter_count))
+                    print(self.model_info['model_name'],
+                          'Epoch [{}/{}], Step [{}/{}], Loss C: {:.4f}, G: {:.4f}, S: {:.4f}'
+                          .format(epoch_iter + 1, TRAIN_PARAMS['EPOCHS_NUM'], st_iter + 1,
+                                  self.model_info['total_steps'], loss_sum[0] / iter_count, loss_sum[1] / iter_count,
+                                  loss_sum[3] / iter_count))
                     total_iter = self.model_info['total_steps'] * epoch_iter + st_iter
                     loss_sum, iter_count = self.reinit_loss()
 
             ##### Save models and images
-            if (epoch_iter + 1) % OUTPUT_PARAMS['SAVE_EPOCH']  == 0:
+            if (epoch_iter + 1) % OUTPUT_PARAMS['SAVE_EPOCH'] == 0:
                 self.save_model(mode_save=0)
 
                 # make a separate checkpoint
@@ -303,29 +331,32 @@ class Train_GAN():
                     self.save_model(epoch_iter=e_iter, mode_save=1)
 
 
-
 @ciagan_exp.automain
 def run_exp(TRAIN_PARAMS):
-    ##### INITIAL PREPARATIONS
+    # INITIAL PREPARATIONS
     model_name = set_model_name()
     model_dir, res_dir = set_output_folders(model_name)
     device_comp = set_comp_device()
 
-    ##### PREPARING DATA
-    loader_train, total_steps, label_num = load_data(mode_train = True)
+    # PREPARING DATA
+    loader_train, total_steps, label_num = load_data(mode_train=True)
     loaders = [loader_train]
 
-    ##### PREPARING MODELS
+    # PREPARING MODELS
     ch_inp_num = 6
-    generator = load_model(model_dir, model_name, 'Generator', device_comp, TRAIN_PARAMS['ARCH_NUM'], epoch_start = TRAIN_PARAMS['EPOCH_START'], ch_inp_num = ch_inp_num, label_num=label_num)
-    critic = load_model(model_dir, model_name, 'Discriminator', device_comp, TRAIN_PARAMS['ARCH_NUM'], epoch_start = TRAIN_PARAMS['EPOCH_START'], ch_inp_num = ch_inp_num)
+    generator = load_model(model_dir, model_name, 'Generator', device_comp, TRAIN_PARAMS['ARCH_NUM'],
+                           epoch_start=TRAIN_PARAMS['EPOCH_START'], ch_inp_num=ch_inp_num, label_num=label_num)
+    critic = load_model(model_dir, model_name, 'Discriminator', device_comp, TRAIN_PARAMS['ARCH_NUM'],
+                        epoch_start=TRAIN_PARAMS['EPOCH_START'], ch_inp_num=ch_inp_num)
 
-    if TRAIN_PARAMS['ARCH_SIAM'][:6]=='resnet':
-        siamese = load_model(model_dir, model_name, 'ResNet', device_comp, TRAIN_PARAMS['ARCH_SIAM'], epoch_start=TRAIN_PARAMS['EPOCH_START'], ch_inp_num = 3)
+    if TRAIN_PARAMS['ARCH_SIAM'][:6] == 'resnet':
+        siamese = load_model(model_dir, model_name, 'ResNet', device_comp, TRAIN_PARAMS['ARCH_SIAM'],
+                             epoch_start=TRAIN_PARAMS['EPOCH_START'], ch_inp_num=3)
     elif TRAIN_PARAMS['ARCH_SIAM'][:4] == 'siam':
-        siamese = load_model(model_dir, model_name, 'NLayerDiscriminator', device_comp, TRAIN_PARAMS['ARCH_SIAM'], epoch_start=TRAIN_PARAMS['EPOCH_START'], ch_inp_num = 3)
+        siamese = load_model(model_dir, model_name, 'NLayerDiscriminator', device_comp, TRAIN_PARAMS['ARCH_SIAM'],
+                             epoch_start=TRAIN_PARAMS['EPOCH_START'], ch_inp_num=3)
 
-    ##### PASSING INFO
+    # PASSING INFO
     model_info = {'generator': generator,
                   'critic': critic,
                   'siamese': siamese,
@@ -337,6 +368,9 @@ def run_exp(TRAIN_PARAMS):
                   'label_num': label_num,
                   }
 
-    ##### INITIALIZE AND START TRAINING
-    trainer = Train_GAN(model_info=model_info, device_comp=device_comp, num_classes=label_num, gan_type=TRAIN_PARAMS['GAN_TYPE'])
+    # INITIALIZE AND START TRAINING
+    trainer = TrainGAN(
+        model_info=model_info, device_comp=device_comp, num_classes=label_num,
+        gan_type=TRAIN_PARAMS['GAN_TYPE']
+    )
     trainer.train_model(loaders=loaders)
