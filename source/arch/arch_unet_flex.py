@@ -22,8 +22,8 @@ class Generator(nn.Module):
         self.encode_one_hot = encode_one_hot
         self.img_size = img_size
 
-        input_ch  = input_nc
-        if img_size==128:
+        input_ch = input_nc
+        if img_size == 128:
             self.conv0 = ResidualBlockDown(input_ch, 32)
             self.in0_e = nn.InstanceNorm2d(32, affine=True)
             input_ch = 32

@@ -28,8 +28,8 @@ ciagan_exp = Experiment()
 @ciagan_exp.config
 def my_config():
     TRAIN_PARAMS = {
-        'ARCH_NUM': 'unet',
-        'ARCH_SIAM': 'unet',
+        'ARCH_NUM': 'unet_flex',
+        'ARCH_SIAM': 'siam_discr',
         'FILTER_NUM': 32,
         'LEARNING_RATE': 0.0001,
         'FLAG_GPU': True,
@@ -45,11 +45,11 @@ def my_config():
     }
 
     DATA_PARAMS = {
-        'DATA_PATH': '../dataset/',
+        'DATA_PATH': '../datasetd/',
         'DATA_SET': 'celeba',
-        'LABEL_NUM': 1200,
+        'LABEL_NUM': 1750,
         'WORKERS_NUM': 4,
-        'BATCH_SIZE': 16,
+        'BATCH_SIZE': 4,
 
         'IMG_SIZE': 128,
         'FLAG_DATA_AUGM': True,
@@ -58,7 +58,7 @@ def my_config():
     OUTPUT_PARAMS = {
         'RESULT_PATH': '../results/',
         'MODEL_PATH': '../models/',
-        'LOG_ITER': 50,
+        'LOG_ITER': 10,
         'SAVE_EPOCH': 5,
         'SAVE_CHECKPOINT': 50,
         'VIZ_PORT': 8098, 'VIZ_HOSTNAME': "http://localhost", 'VIZ_ENV_NAME': 'main',

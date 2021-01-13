@@ -18,6 +18,7 @@ from os import listdir, mkdir
 from os.path import isfile, join, isdir, exists
 import numpy as np
 import importlib
+import pickle
 import random
 import math
 from PIL import Image
@@ -25,12 +26,15 @@ from collections import defaultdict
 import cv2
 import numbers
 
+
 class ImageDataset(torch.utils.data.Dataset):
     """Focal place dataset."""
     def __init__(self, root_dir, label_num=1200, transform_fnc=transforms.Compose([transforms.ToTensor()]),
-                 img_size = 128, flag_init=True, flag_sample=2, flag_augment=True):
+                 img_size=128, flag_init=True, flag_sample=2, flag_augment=True):
 
         self.root_dir = root_dir
+        with open(os.path.join(root_dir, 'landmarks.pkl'), 'rb') as f:
+            self.landmarks = pickle.load(f)
         self.transform_fnc = transform_fnc
         if isinstance(img_size, tuple):
             self.img_shape = img_size
@@ -38,32 +42,80 @@ class ImageDataset(torch.utils.data.Dataset):
             self.img_shape = (img_size, img_size)
         self.flag_sample = flag_sample
 
-        self.root_img = 'clr/'
-        self.root_lndm = 'lndm/'
-        self.root_msk = 'msk/'
+        self.root_img = root_dir
         self.im_label, self.im_paths, self.im_index = [], [], []
 
         self.flag_augment = flag_augment
 
-        if flag_init:
-            it_j=0
-            for it_i in range(label_num):
-                imglist_all = [f for f in listdir(root_dir+self.root_lndm + str(it_i)) if isfile(join(root_dir, self.root_lndm + str(it_i), f)) and f[-4:] == ".jpg"]
-                imglist_all_int = [int(x[:-4]) for x in imglist_all]
-                imglist_all_int.sort()
-                imglist_all = [(str(x).zfill(6) + ".jpg") for x in imglist_all_int]
+        it_j = 0
+        for person_id in os.listdir(root_dir):
+            if not os.path.isdir(os.path.join(root_dir, person_id)):
+                continue
+            imglist_all = [f for f in listdir(os.path.join(root_dir, person_id)) if f[-4:] in [".jpg", ".png"]]
+            # imglist_all_int = [int(x[:-4]) for x in imglist_all]
+            # imglist_all_int.sort()
+            # imglist_all = [(str(x).zfill(6) + ".jpg") for x in imglist_all_int]
+            # imglist_all = sorted(imglist_all)
 
-                self.im_label += [it_i] * len(imglist_all)
-                self.im_paths += imglist_all
-                self.im_index += [it_j] * len(imglist_all)
-                it_j+=1
-            print("Dataset initialized")
+            self.im_label += [int(person_id)] * len(imglist_all)
+            self.im_paths += imglist_all
+            self.im_index += [it_j] * len(imglist_all)
+            it_j += 1
+        print("Dataset initialized")
 
     def __len__(self):
         return len(self.im_label)
 
-    def load_img(self, im_path):
-        im = Image.open(im_path)
+    def get_landmark_img(self, img, landmark):
+        canvas = np.ones_like(img) * 255
+        landmark = landmark[:, :2]
+        chin = landmark[0:17]
+        left_brow = landmark[17:22]
+        right_brow = landmark[22:27]
+        left_eye = landmark[36:42]
+        right_eye = landmark[42:48]
+        nose1 = landmark[27:31]
+        nose2 = landmark[31:36]
+        mouth = landmark[48:60]
+        mouth_internal = landmark[60:68]
+
+        lines = [
+            chin,
+            mouth_internal,
+            nose1
+        ]
+
+        color = (0, 0, 50)
+        for line in lines:
+            cv2.polylines(
+                canvas,
+                np.int32([line]), False,
+                color, thickness=1, lineType=cv2.LINE_AA
+            )
+
+        return canvas
+
+    def get_mask_img(self, img, landmark):
+        landmark = landmark[:, :2]
+        canvas = np.ones_like(img) * 255
+        chin = landmark[0:17]
+        cv2.fillPoly(
+            canvas, np.int32([chin]), (0, 0, 0),
+        )
+        return canvas
+
+    def denorm(self, landmarks, img):
+        landmarks = landmarks.copy()
+        landmarks[:, 0] = landmarks[:, 0] * img.shape[1]
+        landmarks[:, 1] = landmarks[:, 1] * img.shape[0]
+        return landmarks
+
+    def load_img(self, im_path, im_array=None):
+        if im_array is not None:
+            im = Image.fromarray(im_array)
+        else:
+            im = Image.open(im_path)
+
         w, h = im.size
 
         if self.flag_augment:
@@ -93,21 +145,25 @@ class ImageDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         im_clr, im_lndm, im_msk, im_ind = [], [], [], []
-        if self.flag_sample==1:
+        if self.flag_sample == 1:
             idx = [idx]
 
         for k_iter in range(self.flag_sample):
             self.crop_rnd = [random.random(), random.random(), random.random(), random.random()]
-            im_clr_path = os.path.join(self.root_dir, self.root_img, str(self.im_label[idx[k_iter]]), self.im_paths[idx[k_iter]])
-            clr_img = self.load_img(im_clr_path)
+
+            im_clr_path = os.path.join(self.root_dir, str(self.im_label[idx[k_iter]]), self.im_paths[idx[k_iter]])
+            img = cv2.cvtColor(cv2.imread(im_clr_path), cv2.COLOR_RGB2BGR)
+            clr_img = self.load_img(im_clr_path, im_array=img)
             im_clr.append(clr_img)
 
-            im_lndm_path = os.path.join(self.root_dir, self.root_lndm, str(self.im_label[idx[k_iter]]), self.im_paths[idx[k_iter]])
-            lndm_img = self.load_img(im_lndm_path)
+            key_path = os.path.join(im_clr_path.split('/')[-2], os.path.basename(im_clr_path))
+            landmark = self.landmarks[key_path]
+            landmark = self.denorm(landmark, img)
+            lndm_img = self.load_img(None, im_array=self.get_landmark_img(img, landmark))
             im_lndm.append(lndm_img)
 
-            im_msk_path = os.path.join(self.root_dir, self.root_msk, str(self.im_label[idx[k_iter]]), self.im_paths[idx[k_iter]])
-            msk = ((1 - self.load_img(im_msk_path)) > 0.2)
+            msk = ((1 - self.load_img(None, im_array=self.get_mask_img(img, landmark))) > 0.2)
+
             im_msk.append(msk)
 
             im_ind.append(self.im_index[idx[k_iter]])
@@ -115,12 +171,12 @@ class ImageDataset(torch.utils.data.Dataset):
         return im_clr, im_lndm, im_msk, im_ind
 
 
-def load_data(DATA_PATH, DATA_SET, WORKERS_NUM, BATCH_SIZE, IMG_SIZE, FLAG_DATA_AUGM, LABEL_NUM, mode_train=True):
+def load_data(DATA_PATH, WORKERS_NUM, BATCH_SIZE, IMG_SIZE, FLAG_DATA_AUGM, LABEL_NUM, mode_train=True):
     ##### Data loaders
-    data_dir = DATA_PATH + DATA_SET + '/'
+    data_dir = DATA_PATH
     if mode_train:
         dataset_train = ImageDataset(root_dir=data_dir, label_num=LABEL_NUM, transform_fnc=transforms.Compose([transforms.ToTensor()]),
-                                             img_size=IMG_SIZE, flag_augment = FLAG_DATA_AUGM)
+                                     img_size=IMG_SIZE, flag_augment=FLAG_DATA_AUGM)
         total_steps = int(len(dataset_train) / BATCH_SIZE)
 
         ddict = defaultdict(list)
