@@ -9,6 +9,7 @@ import importlib
 import math
 import os
 import random
+import sys
 
 import cv2
 import torch
@@ -79,6 +80,11 @@ load_model = ciagan_exp.capture(util_func.load_model)
 set_comp_device = ciagan_exp.capture(util_func.set_comp_device, prefix='TRAIN_PARAMS')
 set_output_folders = ciagan_exp.capture(util_func.set_output_folders)
 set_model_name = ciagan_exp.capture(util_func.set_model_name)
+
+
+def print_fun(s):
+    print(s)
+    sys.stdout.flush()
 
 
 class TrainGAN:
@@ -308,7 +314,7 @@ class TrainGAN:
             self.model_info['total_steps'] / (2 * num_iter_critic + num_iter_generator + num_iter_siamese))
 
         ##### Training
-        print("Total number of epochs:", TRAIN_PARAMS['EPOCHS_NUM'])
+        print_fun("Total number of epochs:", TRAIN_PARAMS['EPOCHS_NUM'])
         for e_iter in range(TRAIN_PARAMS['EPOCHS_NUM'] - TRAIN_PARAMS['EPOCH_START']):
             epoch_iter = e_iter + TRAIN_PARAMS['EPOCH_START']
             loss_sum, iter_count = self.reinit_loss()
@@ -331,7 +337,7 @@ class TrainGAN:
 
                 ##### Log and visualize output
                 if (st_iter + 1) % OUTPUT_PARAMS['LOG_ITER'] == 0:
-                    print(self.model_info['model_name'],
+                    print_fun(self.model_info['model_name'],
                           'Epoch [{}/{}], Step [{}/{}], Loss C: {:.4f}, G: {:.4f}, S: {:.4f}'
                           .format(epoch_iter + 1, TRAIN_PARAMS['EPOCHS_NUM'], st_iter + 1,
                                   self.model_info['total_steps'], loss_sum[0] / iter_count, loss_sum[1] / iter_count,
