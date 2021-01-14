@@ -5,6 +5,10 @@ Created on Wed Aug 29 14:54:12 2018
 
 @author: maximov
 """
+import importlib
+import math
+import os
+import random
 
 import cv2
 import torch
@@ -16,9 +20,6 @@ from torchvision import transforms, utils
 import tensorboardX
 
 import numpy as np
-import importlib
-import random
-import math
 from sacred import Experiment
 import util_func as util_func
 import util_loss as util_loss
@@ -94,36 +95,41 @@ class TrainGAN:
     def save_model(self, epoch_iter=0, mode_save=0):
         if mode_save == 0:
             torch.save(self.model_info['generator'].state_dict(),
-                       self.model_info['model_dir'] + self.model_info['model_name'] + '_G.pth')
+                       os.path.join(self.model_info['model_dir'], self.model_info['model_name'] + '_G.pth'))
             torch.save(self.model_info['critic'].state_dict(),
-                       self.model_info['model_dir'] + self.model_info['model_name'] + '_C.pth')
+                       os.path.join(self.model_info['model_dir'], self.model_info['model_name'] + '_C.pth'))
             torch.save(self.model_info['siamese'].state_dict(),
-                       self.model_info['model_dir'] + self.model_info['model_name'] + '_S.pth')
+                       os.path.join(self.model_info['model_dir'], self.model_info['model_name'] + '_S.pth'))
         elif mode_save == 1:
             torch.save(self.model_info['generator'].state_dict(),
-                       self.model_info['model_dir'] + self.model_info['model_name'] + '_ep' + str(epoch_iter + 1).zfill(
-                           5) + 'G.pth')
+                       os.path.join(
+                           self.model_info['model_dir'],
+                           self.model_info['model_name'] + '_ep' + str(epoch_iter + 1).zfill(5) + 'G.pth')
+                       )
             torch.save(self.model_info['critic'].state_dict(),
-                       self.model_info['model_dir'] + self.model_info['model_name'] + '_ep' + str(epoch_iter + 1).zfill(
-                           5) + 'C.pth')
+                       os.path.join(
+                           self.model_info['model_dir'],
+                           self.model_info['model_name'] + '_ep' + str(epoch_iter + 1).zfill(5) + 'C.pth')
+                       )
             torch.save(self.model_info['siamese'].state_dict(),
-                       self.model_info['model_dir'] + self.model_info['model_name'] + '_ep' + str(epoch_iter + 1).zfill(
-                           5) + 'S.pth')
+                       os.path.join(
+                           self.model_info['model_dir'],
+                           self.model_info['model_name'] + '_ep' + str(epoch_iter + 1).zfill(5) + 'S.pth')
+                       )
 
     def save_images(self, out, gt, target, inp, epoch_iter=0):
         viz_out_img = torch.clamp(out, 0., 1.)
-        utils.save_image(viz_out_img,
-                         self.model_info['res_dir'] + self.model_info['model_name'] + '_ep' + str(epoch_iter + 1).zfill(
-                             5) + "_est.png")
-        utils.save_image(gt,
-                         self.model_info['res_dir'] + self.model_info['model_name'] + '_ep' + str(epoch_iter + 1).zfill(
-                             5) + "_gt.png")
-        utils.save_image(target,
-                         self.model_info['res_dir'] + self.model_info['model_name'] + '_ep' + str(epoch_iter + 1).zfill(
-                             5) + "_tar.png")
-        utils.save_image(inp,
-                         self.model_info['res_dir'] + self.model_info['model_name'] + '_ep' + str(epoch_iter + 1).zfill(
-                             5) + "_inp.png")
+
+        def get_path_suffix(suffix):
+            return os.path.join(
+                self.model_info['res_dir'],
+                self.model_info['model_name'] + '_ep' + str(epoch_iter + 1).zfill(5) + suffix
+            )
+
+        utils.save_image(viz_out_img, get_path_suffix("_est.png"))
+        utils.save_image(gt, get_path_suffix("_gt.png"))
+        utils.save_image(target, get_path_suffix("_tar.png"))
+        utils.save_image(inp, get_path_suffix("_inp.png"))
 
     def reinit_loss(self):
         return [0] * 6, 0
