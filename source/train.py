@@ -6,12 +6,14 @@ Created on Wed Aug 29 14:54:12 2018
 @author: maximov
 """
 
+import cv2
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import torch.utils.data
 from torchvision import transforms, utils
+import tensorboardX
 
 import numpy as np
 import importlib
@@ -87,6 +89,7 @@ class TrainGAN:
 
         self.criterion_gan = util_loss.GANLoss(gan_type).to(self.device_comp)
         self.criterion_siamese = util_loss.ContrastiveLoss(margin_contrastive).to(self.device_comp)
+        self.writer = tensorboardX.SummaryWriter(logdir=self.model_info['model_dir'])
 
     def save_model(self, epoch_iter=0, mode_save=0):
         if mode_save == 0:
@@ -272,6 +275,14 @@ class TrainGAN:
 
         return loss_sum, im_faces, im_lndm, output_gen
 
+    def get_image(self, tensor):
+        if isinstance(tensor, list):
+            tensor = tensor[0]
+
+        img = tensor[0].detach().cpu().numpy().transpose([1, 2, 0])
+        img = (img * 255).clip(0, 255).astype(np.uint8)
+        return img
+
     @ciagan_exp.capture
     def train_model(self, loaders, TRAIN_PARAMS, OUTPUT_PARAMS):
         self.optimizer_G = optim.Adam(self.model_info['generator'].parameters(), lr=TRAIN_PARAMS['LEARNING_RATE'],
@@ -319,6 +330,20 @@ class TrainGAN:
                           .format(epoch_iter + 1, TRAIN_PARAMS['EPOCHS_NUM'], st_iter + 1,
                                   self.model_info['total_steps'], loss_sum[0] / iter_count, loss_sum[1] / iter_count,
                                   loss_sum[3] / iter_count))
+
+                    self.writer.add_scalar("loss_critic", loss_sum[0] / iter_count, st_iter + 1)
+                    self.writer.add_scalar("loss_gen", loss_sum[1] / iter_count, st_iter + 1)
+                    self.writer.add_scalar("loss_siam", loss_sum[3] / iter_count, st_iter + 1)
+
+                    face = self.get_image(im_faces)
+                    lm = self.get_image(im_lndm)
+                    gen = self.get_image(im_gen)
+                    summary_img = np.hstack((face, lm, gen))
+
+                    # cv2.imshow('img', summary_img[:, :, ::-1])
+                    # cv2.waitKey(1)
+                    self.writer.add_image("result", summary_img, st_iter + 1, dataformats='HWC')
+
                     total_iter = self.model_info['total_steps'] * epoch_iter + st_iter
                     loss_sum, iter_count = self.reinit_loss()
 
