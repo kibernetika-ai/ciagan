@@ -335,17 +335,18 @@ class TrainGAN:
                 loss_sum[2] += loss_values[1]
                 iter_count += 1.
 
+                global_step = epoch_iter * self.model_info['total_steps'] + st_iter + 1
                 ##### Log and visualize output
-                if (st_iter + 1) % OUTPUT_PARAMS['LOG_ITER'] == 0:
+                if global_step % OUTPUT_PARAMS['LOG_ITER'] == 0:
                     print_fun('Epoch [{}/{}], Step [{}/{}], Loss C: {:.4f}, G: {:.4f}, S: {:.4f}'
                               .format(epoch_iter + 1, TRAIN_PARAMS['EPOCHS_NUM'], st_iter + 1,
                                       self.model_info['total_steps'], loss_sum[0] / iter_count,
                                       loss_sum[1] / iter_count,
                                       loss_sum[3] / iter_count))
 
-                    self.writer.add_scalar("loss_critic", loss_sum[0] / iter_count, st_iter + 1)
-                    self.writer.add_scalar("loss_gen", loss_sum[1] / iter_count, st_iter + 1)
-                    self.writer.add_scalar("loss_siam", loss_sum[3] / iter_count, st_iter + 1)
+                    self.writer.add_scalar("loss_critic", loss_sum[0] / iter_count, global_step)
+                    self.writer.add_scalar("loss_gen", loss_sum[1] / iter_count, global_step)
+                    self.writer.add_scalar("loss_siam", loss_sum[3] / iter_count, global_step)
 
                     face = self.get_image(im_faces)
                     lm = self.get_image(im_lndm)
@@ -354,7 +355,7 @@ class TrainGAN:
 
                     # cv2.imshow('img', summary_img[:, :, ::-1])
                     # cv2.waitKey(1)
-                    self.writer.add_image("result", summary_img, st_iter + 1, dataformats='HWC')
+                    self.writer.add_image("result", summary_img, global_step, dataformats='HWC')
 
                     total_iter = self.model_info['total_steps'] * epoch_iter + st_iter
                     loss_sum, iter_count = self.reinit_loss()
